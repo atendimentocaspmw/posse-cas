@@ -1,8 +1,8 @@
 // ================================================================
 // 1. CONFIGURAÇÃO (Substitua pelos seus dados reais)
 // ================================================================
-const CLIENT_ID = 'SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
-const API_KEY = 'SUA_CHAVE_API_AQUI'; 
+const CLIENT_ID = '759968073070-hall018n8q5pj7661j33j6amoncd4j9e.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyAdpISaVK2B48vec3wq78OT3uzKNIqP4NM'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file'; 
 
