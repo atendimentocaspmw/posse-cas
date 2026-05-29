@@ -1,59 +1,42 @@
 // ================================================================
 // 1. CONFIGURAÇÃO
 // ================================================================
-// URL que você gerou ao publicar o Google Apps Script
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzBG5SKOx65i095llkC_7ROKGJ_wpbkgCDArSGDypBbUN9gkWq6RQUWUndoSNQKSwPzCQ/exec"; 
+const SCRIPT_URL = "SUA_URL_DO_APPS_SCRIPT_AQUI"; 
 
 const form = document.getElementById('posseForm');
 const messageNode = document.getElementById('message');
 const formFields = Array.from(form.querySelectorAll('input, select, textarea'));
 
-console.log("Script app.js carregado pronto para envio direto.");
-
 // ================================================================
-// 2. LÓGICA DO FORMULÁRIO (Validação)
+// 2. LOGICA DE SUBMISSÃO
 // ================================================================
-
-formFields.forEach((field) => {
-    const errorSpan = document.createElement('span');
-    errorSpan.className = 'field-error';
-    field.parentElement.appendChild(errorSpan);
-    field.errorSpan = errorSpan;
-});
-
-formFields.forEach((field) => {
-    field.addEventListener('focus', () => {
-        field.classList.remove('field-invalid', 'field-valid');
-        field.errorSpan.textContent = '';
-    });
-    const eventType = field.tagName === 'SELECT' || field.type === 'file' ? 'change' : 'blur';
-    field.addEventListener(eventType, () => {
-        field.dataset.touched = 'true';
-        validateField(field);
-    });
-});
 
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
     messageNode.textContent = '';
     
-    formFields.forEach((field) => { field.dataset.touched = 'true'; });
+    // Validar campos
+    const allValid = formFields.every((field) => {
+        field.dataset.touched = 'true';
+        const value = field.value?.trim() || '';
+        if (field.required && value === '' && field.type !== 'file') return false;
+        if (field.type === 'file' && field.required && field.files.length === 0) return false;
+        return true;
+    });
 
-    const allValid = formFields.every((field) => validateField(field));
     if (!allValid) {
-        showMessage('Corrija os campos inválidos antes de enviar.', 'error');
+        showMessage('Por favor, preencha todos os campos obrigatórios.', 'error');
         return;
     }
 
     const formData = new FormData(form);
     const cpfRaw = formData.get('cpf')?.toString().trim() || '';
     const cpfDigits = cpfRaw.replace(/\D/g, '');
-    const fileInputs = Array.from(form.querySelectorAll('input[type="file"]'));
-    const pdfFiles = fileInputs.flatMap(input => Array.from(input.files || [])).filter(file => file instanceof File && file.size > 0);
-
+    
+    // Captura TODOS os dados para a planilha e para o TXT
     const data = {
         nome: formData.get('nome'),
-        cpf: formData.get('cpf'),
+        cpf: cpfRaw,
         cpfDigits: cpfDigits,
         email: formData.get('email'),
         celular: formData.get('celular'),
@@ -67,102 +50,84 @@ form.addEventListener('submit', async (event) => {
         docOrgao: formData.get('docOrgao'),
         docUf: formData.get('docUf'),
         docEmissao: formData.get('docEmissao'),
-        servidorCedido: formData.get('servidorCedido'),
-        atoCessaoPagina: formData.get('atoCessaoPagina'),
-        encargosFinanceiros: formData.get('encargosFinanceiros'),
+        servidorCedido: formData.get('servidorCedido') || "Não",
+        atoCessaoPagina: formData.get('atoCessaoPagina') || "N/A",
+        encargosFinanceiros: formData.get('encargosFinanceiros') || "N/A",
         geradoEm: new Date().toLocaleString('pt-BR')
     };
 
     try {
-        await gerarZip(data, pdfFiles);
+        await gerarZip(data);
     } catch (error) {
-        console.error(error);
-        showMessage('Erro ao processar o arquivo.', 'error');
+        showMessage('Erro ao processar arquivos.', 'error');
     }
 });
 
 // ================================================================
-// 3. LÓGICA DE GERAÇÃO DO ZIP
+// 3. GERAÇÃO DO ZIP (Com TXT completo)
 // ================================================================
 
-async function gerarZip(data, pdfFiles) {
+async function gerarZip(data) {
     const zip = new JSZip();
     
-    let conteudoTxt = `===== DOCUMENTAÇÃO DE POSSE DO SERVIDOR =====\n\n`;
-    conteudoTxt += `Data e Hora de Envio: ${data.geradoEm}\n\n`;
-    conteudoTxt += `Nome: ${data.nome}\nCPF: ${data.cpf}\nE-mail: ${data.email}\nCelular: ${data.celular}\n`;
-    conteudoTxt += `Data Nascimento: ${data.dataNascimento}\n\n`;
-    conteudoTxt += `--- Nomeação ---\nDOU: ${data.douNumero} (${data.douData})\nAto: ${data.atoNumero} (${data.atoData})\n\n`;
-    conteudoTxt += `--- Documento ---\nTipo: ${data.docTipo}\nNúmero: ${data.docNumero}\nEmissor: ${data.docOrgao} / ${data.docUf}\n\n`;
-    conteudoTxt += `--- Obs ---\nCedido: ${data.servidorCedido}\nEncargos: ${data.encargosFinanceiros}\n`;
-
-    zip.file('DADOS_POSSE.txt', conteudoTxt);
+    let txt = `===== DADOS DE POSSE =====\n\nNome: ${data.nome}\nCPF: ${data.cpf}\nEmail: ${data.email}\n`;
+    txt += `DOU: ${data.douNumero} de ${data.douData}\nAto: ${data.atoNumero}\n`;
+    txt += `Documento: ${data.docTipo} nº ${data.docNumero}\n`;
+    zip.file('DADOS_POSSE.txt', txt);
 
     const pastaDocumentos = zip.folder("DOCUMENTOS_ANEXADOS");
     const fileInputs = Array.from(form.querySelectorAll('input[type="file"]'));
+    
     fileInputs.forEach((input) => {
-        const files = Array.from(input.files || []);
-        files.forEach((file) => {
+        Array.from(input.files || []).forEach((file) => {
             pastaDocumentos.file(file.name, file);
         });
     });
 
     const blob = await zip.generateAsync({ type: 'blob' });
-    const nomeFormatado = data.nome.toUpperCase().trim().replace(/\s+/g, '_');
-    const fileName = `POSSE_${nomeFormatado}.zip`;
+    const fileName = `POSSE_${data.nome.toUpperCase().replace(/\s+/g, '_')}.zip`;
     
-    await enviarParaGoogleDrive(blob, fileName);
+    await enviarParaGoogleDrive(blob, fileName, data);
 }
 
 // ================================================================
-// 4. ENVIO PARA O GOOGLE APPS SCRIPT
+// 4. ENVIO DUPLO (PLANILHA + DRIVE)
 // ================================================================
 
-async function enviarParaGoogleDrive(blob, nomeArquivo) {
-    showMessage('Preparando envio seguro...', 'success');
+async function enviarParaGoogleDrive(blob, nomeArquivo, data) {
+    showMessage('Iniciando envio seguro (Drive + Planilha)...', 'success');
 
-    try {
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = async function() {
-            const base64data = reader.result.split(',')[1];
-            
-            // Envia para o Google Apps Script
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = async function() {
+        const base64data = reader.result.split(',')[1];
+        
+        try {
             const response = await fetch(SCRIPT_URL, {
                 method: "POST",
                 body: JSON.stringify({
                     contents: base64data,
-                    filename: nomeArquivo
+                    filename: nomeArquivo,
+                    data: data // Aqui enviamos os textos para a Planilha
                 }),
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                }
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
             });
 
             const result = await response.json();
 
             if (result.result === "success") {
-                showMessage(`Sucesso! Documentação enviada e organizada na pasta "${result.folder}" do Drive.`, 'success');
+                showMessage(`Sucesso! Registrado na planilha e salvo no Drive (${result.folder}).`, 'success');
                 form.reset();
-                formFields.forEach(f => f.classList.remove('field-valid', 'field-invalid'));
             } else {
                 throw new Error(result.error);
             }
-        };
-    } catch (error) {
-        console.error(error);
-        showMessage('Erro ao enviar: ' + error.message, 'error');
-    }
+        } catch (error) {
+            showMessage('Erro no envio: ' + error.message, 'error');
+        }
+    };
 }
 
-function validateField(field) {
-    const value = field.value?.trim() || '';
-    if (field.required && value === '' && field.type !== 'file') return false;
-    if (field.type === 'file' && field.required && field.files.length === 0) return false;
-    return true; 
-}
-
-function showMessage(text, type = 'success') {
+function showMessage(text, type) {
     messageNode.textContent = text;
     messageNode.className = `message ${type}`;
 }
