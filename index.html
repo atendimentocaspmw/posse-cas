@@ -212,9 +212,16 @@
         </form>
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js" integrity="sha512-Nf9sB5/dxtP0ROd06vH5M6m1HaF/U/7OoL7IsYQ8v9Y2b/vHIhtbI7G8SLjsW27djxWks/yr5ve7ZK7O3C5B3A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <!-- 1. JSZip for creating the ZIP file -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
+
+    <!-- 2. Your actual application logic -->
+    <!-- Make sure the path "app.js" is correct relative to your HTML file -->
     <script src="app.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js"></script>
+
+    <!-- 3. Google Libraries (with onload triggers) -->
+    <!-- These MUST be after app.js so they can find the gsiLoaded/gapiLoaded functions -->
+    <script src="https://accounts.google.com/gsi/client" onload="gsiLoaded()" async defer></script>
+    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 </body>
 </html>
