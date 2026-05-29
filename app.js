@@ -92,11 +92,27 @@ form.addEventListener('submit', async (event) => {
     const pdfFiles = fileInputs.flatMap(input => Array.from(input.files || [])).filter(file => file instanceof File && file.size > 0);
 
     const data = {
-        nome: formData.get('nome')?.toString().trim(),
-        cpf: cpfRaw,
+        nome: formData.get('nome'),
+        cpf: formData.get('cpf'),
         cpfDigits: cpfDigits,
+        email: formData.get('email'),
+        celular: formData.get('celular'),
+        dataNascimento: formData.get('dataNascimento'),
+        douNumero: formData.get('douNumero'),
+        douData: formData.get('douData'),
+        atoNumero: formData.get('atoNumero'),
+        atoData: formData.get('atoData'),
+        docTipo: formData.get('docTipo'),
+        docNumero: formData.get('docNumero'),
+        docOrgao: formData.get('docOrgao'),
+        docUf: formData.get('docUf'),
+        docEmissao: formData.get('docEmissao'),
+        servidorCedido: formData.get('servidorCedido'),
+        atoCessaoPagina: formData.get('atoCessaoPagina'),
+        encargosFinanceiros: formData.get('encargosFinanceiros'),
         geradoEm: new Date().toLocaleString('pt-BR')
     };
+
 
     try {
         await gerarZip(data, pdfFiles);
@@ -108,14 +124,48 @@ form.addEventListener('submit', async (event) => {
 
 async function gerarZip(data, pdfFiles) {
     const zip = new JSZip();
-    zip.file('DADOS_POSSE.txt', `Nome: ${data.nome}\nCPF: ${data.cpf}\nGerado em: ${data.geradoEm}`);
+    
+    // Criando o conteúdo detalhado do arquivo TXT
+    let conteudoTxt = `===== DOCUMENTAÇÃO DE POSSE DO SERVIDOR =====\n\n`;
+    conteudoTxt += `Data e Hora de Envio: ${data.geradoEm}\n\n`;
+    
+    conteudoTxt += `--- Dados Pessoais ---\n`;
+    conteudoTxt += `Nome: ${data.nome}\n`;
+    conteudoTxt += `CPF: ${data.cpf}\n`;
+    conteudoTxt += `E-mail: ${data.email}\n`;
+    conteudoTxt += `Celular: ${data.celular}\n`;
+    conteudoTxt += `Data de Nascimento: ${data.dataNascimento}\n\n`;
+    
+    conteudoTxt += `--- Ato de Nomeação ---\n`;
+    conteudoTxt += `Número do DOU: ${data.douNumero}\n`;
+    conteudoTxt += `Data da Publicação: ${data.douData}\n`;
+    conteudoTxt += `Número do Ato: ${data.atoNumero}\n`;
+    conteudoTxt += `Data do Ato: ${data.atoData}\n\n`;
+    
+    conteudoTxt += `--- Documento de Identificação ---\n`;
+    conteudoTxt += `Tipo: ${data.docTipo}\n`;
+    conteudoTxt += `Número: ${data.docNumero}\n`;
+    conteudoTxt += `Órgão Emissor: ${data.docOrgao}\n`;
+    conteudoTxt += `UF: ${data.docUf}\n`;
+    conteudoTxt += `Data de Emissão: ${data.docEmissao}\n\n`;
 
+    conteudoTxt += `--- Cessão e Observações ---\n`;
+    conteudoTxt += `Servidor Cedido: ${data.servidorCedido}\n`;
+    conteudoTxt += `Página Cessão: ${data.atoCessaoPagina}\n`;
+    conteudoTxt += `Encargos: ${data.encargosFinanceiros}\n`;
+
+    // Adiciona o arquivo TXT ao ZIP
+    zip.file('DADOS_POSSE.txt', conteudoTxt);
+
+    // Adiciona os PDFs organizados em pastas
     const fileInputs = Array.from(form.querySelectorAll('input[type="file"]'));
     fileInputs.forEach((input) => {
         const files = Array.from(input.files || []);
         if (files.length > 0) {
             const folder = zip.folder(input.name);
-            files.forEach((file) => { folder.file(file.name, file); });
+            files.forEach((file) => {
+                folder.file(file.name, file);
+            });
         }
     });
 
