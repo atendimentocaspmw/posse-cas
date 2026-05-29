@@ -15,32 +15,21 @@ console.log("Script app.js carregado. Aguardando APIs...");
 // ================================================================
 // 2. INICIALIZAÇÃO DAS APIs
 // ================================================================
-
-// Chamado quando o script https://apis.google.com/js/api.js carrega
+// MODIFIED INITIALIZATION
 function gapiLoaded() {
-    console.log("GAPI carregando...");
-    gapi.load('client', async () => {
-        try {
-            await gapi.client.init({
-                apiKey: API_KEY,
-                discoveryDocs: [DISCOVERY_DOC],
-            });
-            gapiInited = true;
-            console.log("GAPI pronto.");
-        } catch (err) {
-            console.error("Erro GAPI:", err);
-        }
-    });
+    // We will skip GAPI initialization for now since it's failing
+    // and use a direct fetch for the upload instead.
+    gapiInited = true; 
+    console.log("GAPI bypass enabled.");
 }
 
-// Chamado quando o script https://accounts.google.com/gsi/client carrega
 function gsiLoaded() {
     console.log("GSI carregando...");
     try {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
-            callback: '', // Definido no momento do upload
+            callback: '', 
         });
         gsiInited = true;
         console.log("GSI pronto.");
@@ -49,11 +38,6 @@ function gsiLoaded() {
     }
 }
 
-// Fail-safe: Caso o onload falhe, tenta inicializar a cada 2 segundos
-setInterval(() => {
-    if (!gapiInited && typeof gapi !== 'undefined' && gapi.load) gapiLoaded();
-    if (!gsiInited && typeof google !== 'undefined' && google.accounts) gsiLoaded();
-}, 2000);
 
 // ================================================================
 // 3. LÓGICA DO FORMULÁRIO
