@@ -1,4 +1,6 @@
-// CONFIGURAÇÃO GOOGLE DRIVE (Substitua pelos seus dados do Console Google Cloud)
+// ================================================================
+// 1. CONFIGURAÇÃO (Substitua pelos seus dados reais)
+// ================================================================
 const CLIENT_ID = 'SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
 const API_KEY = 'SUA_CHAVE_API_AQUI'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -8,25 +10,54 @@ let tokenClient;
 let gapiInited = false;
 let gsiInited = false;
 
-// Inicialização das APIs do Google
+console.log("Script app.js carregado. Aguardando APIs...");
+
+// ================================================================
+// 2. INICIALIZAÇÃO DAS APIs
+// ================================================================
+
+// Chamado quando o script https://apis.google.com/js/api.js carrega
 function gapiLoaded() {
+    console.log("GAPI carregando...");
     gapi.load('client', async () => {
-        await gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: [DISCOVERY_DOC],
-        });
-        gapiInited = true;
+        try {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            gapiInited = true;
+            console.log("GAPI pronto.");
+        } catch (err) {
+            console.error("Erro GAPI:", err);
+        }
     });
 }
 
+// Chamado quando o script https://accounts.google.com/gsi/client carrega
 function gsiLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: '', // Definido no momento do upload
-    });
-    gsiInited = true;
+    console.log("GSI carregando...");
+    try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: '', // Definido no momento do upload
+        });
+        gsiInited = true;
+        console.log("GSI pronto.");
+    } catch (err) {
+        console.error("Erro GSI:", err);
+    }
 }
+
+// Fail-safe: Caso o onload falhe, tenta inicializar a cada 2 segundos
+setInterval(() => {
+    if (!gapiInited && typeof gapi !== 'undefined' && gapi.load) gapiLoaded();
+    if (!gsiInited && typeof google !== 'undefined' && google.accounts) gsiLoaded();
+}, 2000);
+
+// ================================================================
+// 3. LÓGICA DO FORMULÁRIO
+// ================================================================
 
 const form = document.getElementById('posseForm');
 const messageNode = document.getElementById('message');
@@ -57,9 +88,8 @@ form.addEventListener('submit', async (event) => {
     event.preventDefault();
     messageNode.textContent = '';
     
-    // Verificação de APIs
     if (!gapiInited || !gsiInited) {
-        showMessage('Aguarde o carregamento das APIs do Google...', 'error');
+        showMessage('Aguarde o carregamento das APIs do Google (Verifique o console F12)...', 'error');
         return;
     }
 
@@ -81,10 +111,6 @@ form.addEventListener('submit', async (event) => {
         nome: formData.get('nome')?.toString().trim(),
         cpf: cpfRaw,
         cpfDigits: cpfDigits,
-        email: formData.get('email')?.toString().trim(),
-        celular: formData.get('celular')?.toString().trim(),
-        whatsappLink: `https://wa.me/${cpfDigits}`,
-        dataNascimento: formData.get('dataNascimento')?.toString().trim(),
         geradoEm: new Date().toLocaleString('pt-BR')
     };
 
@@ -113,9 +139,12 @@ async function gerarZip(data, pdfFiles) {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
     const fileName = `POSSE_${data.cpfDigits}_${timestamp}.zip`;
     
-    // CHAMADA PARA O GOOGLE DRIVE
     await enviarParaGoogleDrive(blob, fileName);
 }
+
+// ================================================================
+// 4. UPLOAD PARA GOOGLE DRIVE
+// ================================================================
 
 async function enviarParaGoogleDrive(blob, nomeArquivo) {
     showMessage('Solicitando autorização do Google...', 'success');
@@ -145,7 +174,7 @@ async function enviarParaGoogleDrive(blob, nomeArquivo) {
             });
 
             if (uploadResponse.ok) {
-                showMessage(`Sucesso! Arquivo "${nomeArquivo}" enviado para o seu Google Drive.`, 'success');
+                showMessage(`Sucesso! Arquivo enviado para o seu Drive.`, 'success');
                 form.reset();
             } else {
                 const error = await uploadResponse.json();
@@ -156,15 +185,13 @@ async function enviarParaGoogleDrive(blob, nomeArquivo) {
         }
     };
 
-    // Abre o popup de login do Google
     tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
-// Funções auxiliares mantidas
 function validateField(field) {
     const value = field.value?.trim() || '';
     if (field.required && value === '' && field.type !== 'file') return false;
-    return true; // Simplificado para o exemplo, mantenha sua lógica original aqui se desejar
+    return true; 
 }
 
 function showMessage(text, type = 'success') {
