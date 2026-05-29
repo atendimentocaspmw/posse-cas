@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posse de Servidor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Formulário de Posse</h1>
+            <p>Preencha os dados para posse e anexe todos os documentos em PDF exigidos.</p>
+            <p class="required-note">Campos obrigatórios são destacados com borda vermelha. Somente arquivos PDF são aceitos.</p>
+        </header>
+
+        <form id="posseForm" class="form-card">
+            <h2 class="section-title">Dados Pessoais</h2>
+            <div class="grid-2">
+                <label>
+                    Nome completo sem abreviações
+                    <input type="text" name="nome" required>
+                </label>
+                <label>
+                    CPF
+                    <input type="text" name="cpf" placeholder="000.000.000-00" maxlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" required>
+                </label>
+            </div>
+            <div class="grid-2">
+                <label>
+                    E-mail
+                    <input type="email" name="email" required>
+                </label>
+                <label>
+                    Celular (WhatsApp)
+                    <input type="tel" name="celular" inputmode="numeric" placeholder="5511999999999" pattern="^\+?\d{10,15}$" required>
+                </label>
+            </div>
+            <div class="grid-2">
+                <label>
+                    Data de nascimento
+                    <input type="date" name="dataNascimento" min="1900-01-01" required>
+                </label>
+                <label>
+                    Situação cadastral do CPF (PDF)
+                    <input type="file" name="situacaoCpf" accept="application/pdf" required>
+                </label>
+            </div>
+
+            <h2 class="section-title">Ato de Nomeação</h2>
+            <div class="grid-2">
+                <label>
+                    Número do DOU de nomeação
+                    <input type="text" name="douNumero" required>
+                </label>
+                <label>
+                    Data da publicação
+                    <input type="date" name="douData" required>
+                </label>
+            </div>
+            <div class="grid-2">
+                <label>
+                    Número do ato
+                    <input type="text" name="atoNumero" required>
+                </label>
+                <label>
+                    Data do ato
+                    <input type="date" name="atoData" required>
+                </label>
+            </div>
+            <label>
+                Página do ato do DOU (PDF)
+                <input type="file" name="atoPagina" accept="application/pdf" required>
+            </label>
+
+            <h2 class="section-title">Documento de Identificação</h2>
+            <div class="grid-2">
+                <label>
+                    Tipo de documento de identificação
+                    <select name="docTipo" required>
+                        <option value="">Selecione</option>
+                        <option value="RG">RG</option>
+                        <option value="CNH">CNH</option>
+                        <option value="Carteira Profissional">Carteira Profissional</option>
+                    </select>
+                </label>
+                <label>
+                    Número do documento
+                    <input type="text" name="docNumero" required>
+                </label>
+            </div>
+            <div class="grid-2">
+                <label>
+                    Órgão emissor
+                    <input type="text" name="docOrgao" required>
+                </label>
+                <label>
+                    UF
+                    <select name="docUf" required>
+                        <option value="">Selecione</option>
+                        <option value="AC">AC - Acre</option>
+                        <option value="AL">AL - Alagoas</option>
+                        <option value="AP">AP - Amapá</option>
+                        <option value="AM">AM - Amazonas</option>
+                        <option value="BA">BA - Bahia</option>
+                        <option value="CE">CE - Ceará</option>
+                        <option value="DF">DF - Distrito Federal</option>
+                        <option value="ES">ES - Espírito Santo</option>
+                        <option value="GO">GO - Goiás</option>
+                        <option value="MA">MA - Maranhão</option>
+                        <option value="MT">MT - Mato Grosso</option>
+                        <option value="MS">MS - Mato Grosso do Sul</option>
+                        <option value="MG">MG - Minas Gerais</option>
+                        <option value="PA">PA - Pará</option>
+                        <option value="PB">PB - Paraíba</option>
+                        <option value="PR">PR - Paraná</option>
+                        <option value="PE">PE - Pernambuco</option>
+                        <option value="PI">PI - Piauí</option>
+                        <option value="RJ">RJ - Rio de Janeiro</option>
+                        <option value="RN">RN - Rio Grande do Norte</option>
+                        <option value="RS">RS - Rio Grande do Sul</option>
+                        <option value="RO">RO - Rondônia</option>
+                        <option value="RR">RR - Roraima</option>
+                        <option value="SC">SC - Santa Catarina</option>
+                        <option value="SP">SP - São Paulo</option>
+                        <option value="SE">SE - Sergipe</option>
+                        <option value="TO">TO - Tocantins</option>
+                    </select>
+                </label>
+            </div>
+            <label>
+                Data de emissão
+                <input type="date" name="docEmissao" required>
+            </label>
+
+            <h2 class="section-title">Documentos Obrigatórios</h2>
+            <label>
+                Certidão civil (PDF)
+                <input type="file" name="certidaoCivil" accept="application/pdf" required>
+            </label>
+            <label>
+                Título de eleitor (PDF)
+                <input type="file" name="tituloEleitor" accept="application/pdf" required>
+            </label>
+            <label>
+                Reservista (PDF)
+                <input type="file" name="reservista" accept="application/pdf">
+            </label>
+            <label>
+                Comprovante de escolaridade (PDF)
+                <input type="file" name="comprovanteEscolaridade" accept="application/pdf" required>
+            </label>
+            <label>
+                Comprovante de conta no Banco do Brasil (PDF)
+                <input type="file" name="comprovanteBancoBrasil" accept="application/pdf" required>
+            </label>
+            <label>
+                Comprovante de endereço (PDF)
+                <input type="file" name="comprovanteEndereco" accept="application/pdf" required>
+            </label>
+            <label>
+                Documentos de dependentes com CPF (PDF)
+                <input type="file" name="dependentesCpf" accept="application/pdf" multiple>
+            </label>
+            <label>
+                Autodeclaração de saúde (PDF)
+                <input type="file" name="autodeclaracaoSaude" accept="application/pdf" required>
+            </label>
+            <label>
+                Quitação eleitoral (PDF)
+                <input type="file" name="quitacaoEleitoral" accept="application/pdf" required>
+            </label>
+            <label>
+                CND municipal de Palmas (PDF)
+                <input type="file" name="cndMunicipalPalmas" accept="application/pdf" required>
+            </label>
+            <label>
+                Certidão de antecedentes criminais SSP TO (PDF)
+                <input type="file" name="antecedentesSspTo" accept="application/pdf" required>
+            </label>
+            <label>
+                Certidão de antecedentes criminais PF (PDF)
+                <input type="file" name="antecedentesPf" accept="application/pdf" required>
+            </label>
+            <label>
+                Certidão de antecedentes criminais Justiça Estadual (PDF)
+                <input type="file" name="antecedentesJusticaEstadual" accept="application/pdf" required>
+            </label>
+            <label>
+                Certidão de antecedentes criminais Justiça Federal 1ª Região (PDF)
+                <input type="file" name="antecedentesJusticaFederal" accept="application/pdf" required>
+            </label>
+
+            <h2 class="section-title">Cessão e Observações</h2>
+            <label>
+                Servidor cedido?
+                <input type="text" name="servidorCedido" placeholder="Sim/Não">
+            </label>
+            <label>
+                Página do ato de cessão
+                <input type="text" name="atoCessaoPagina" placeholder="Se houver">
+            </label>
+            <label>
+                Encargos financeiros
+                <textarea name="encargosFinanceiros" rows="3" placeholder="Informe encargos ou valores"></textarea>
+            </label>
+
+            <div class="actions">
+                <button type="submit">Enviar documentação de posse</button>
+            </div>
+            <p id="message" class="message"></p>
+        </form>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js" integrity="sha512-Nf9sB5/dxtP0ROd06vH5M6m1HaF/U/7OoL7IsYQ8v9Y2b/vHIhtbI7G8SLjsW27djxWks/yr5ve7ZK7O3C5B3A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="app.js"></script>
+</body>
+</html>
