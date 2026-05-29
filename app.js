@@ -122,10 +122,14 @@ form.addEventListener('submit', async (event) => {
     }
 });
 
+// ================================================================
+// 3. LÓGICA DE GERAÇÃO DO ZIP
+// ================================================================
+
 async function gerarZip(data, pdfFiles) {
     const zip = new JSZip();
     
-    // Criando o conteúdo detalhado do arquivo TXT
+    // 1. Criando o conteúdo detalhado do arquivo TXT
     let conteudoTxt = `===== DOCUMENTAÇÃO DE POSSE DO SERVIDOR =====\n\n`;
     conteudoTxt += `Data e Hora de Envio: ${data.geradoEm}\n\n`;
     
@@ -154,33 +158,40 @@ async function gerarZip(data, pdfFiles) {
     conteudoTxt += `Página Cessão: ${data.atoCessaoPagina}\n`;
     conteudoTxt += `Encargos: ${data.encargosFinanceiros}\n`;
 
-    // Adiciona o arquivo TXT ao ZIP
+    // Adiciona o arquivo TXT na raiz do ZIP
     zip.file('DADOS_POSSE.txt', conteudoTxt);
 
-    // Adiciona os PDFs organizados em pastas
+    // 2. Criar UMA ÚNICA PASTA para todos os PDFs
+    const pastaDocumentos = zip.folder("DOCUMENTOS_ANEXADOS");
+
+    // 3. Adicionar todos os arquivos dos inputs de arquivo nesta pasta única
     const fileInputs = Array.from(form.querySelectorAll('input[type="file"]'));
     fileInputs.forEach((input) => {
         const files = Array.from(input.files || []);
-        if (files.length > 0) {
-            const folder = zip.folder(input.name);
-            files.forEach((file) => {
-                folder.file(file.name, file);
-            });
-        }
+        files.forEach((file) => {
+            // Adiciona o arquivo direto na pasta única
+            // O nome do arquivo será preservado (ex: rg.pdf, cpf.pdf)
+            pastaDocumentos.file(file.name, file);
+        });
     });
 
+    // 4. Gerar o BLOB do ZIP
     const blob = await zip.generateAsync({ type: 'blob' });
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    const fileName = `POSSE_${data.cpfDigits}_${timestamp}.zip`;
+    
+    // Formatação do nome do arquivo ZIP
+    const nomeFormatado = data.nome.toUpperCase().trim().replace(/\s+/g, '_');
+    const fileName = `POSSE_${nomeFormatado}.zip`;
     
     await enviarParaGoogleDrive(blob, fileName);
 }
 
+
 // ================================================================
-// 4. UPLOAD PARA GOOGLE DRIVE
+// 4. UPLOAD PARA GOOGLE DRIVE (COM ORGANIZAÇÃO POR DATA)
 // ================================================================
 
 async function enviarParaGoogleDrive(blob, nomeArquivo) {
+    const PARENT_FOLDER_ID = '1nKwFHwJIKE9ilRzuH3pOKuVlnNT_eTli'; 
     showMessage('Solicitando autorização do Google...', 'success');
 
     tokenClient.callback = async (response) => {
@@ -189,12 +200,52 @@ async function enviarParaGoogleDrive(blob, nomeArquivo) {
             return;
         }
 
+        const accessToken = response.access_token;
+
         try {
-            showMessage('Enviando arquivo para o Drive...', 'success');
+            showMessage('Organizando pastas no Drive...', 'success');
+
+            // 1. Obter a data atual no formato DD-MM-AAAA
+            const hoje = new Date();
+            const pastaDataNome = hoje.toLocaleDateString('pt-BR').replace(/\//g, '-');
+
+            // 2. Procurar se a pasta da data já existe dentro da pasta principal
+            let folderId;
+            const query = `name = '${pastaDataNome}' and '${PARENT_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+            const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const searchResult = await searchResponse.json();
+
+            if (searchResult.files && searchResult.files.length > 0) {
+                folderId = searchResult.files[0].id;
+                console.log("Pasta da data já existe:", folderId);
+            } else {
+                // Criar a pasta da data
+                console.log("Criando nova pasta para a data...");
+                const createFolderRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: pastaDataNome,
+                        mimeType: 'application/vnd.google-apps.folder',
+                        parents: [PARENT_FOLDER_ID]
+                    })
+                });
+                const newFolder = await createFolderRes.json();
+                folderId = newFolder.id;
+            }
+
+            // 3. Fazer o Upload do ZIP para a pasta da data
+            showMessage(`Enviando arquivo para a pasta ${pastaDataNome}...`, 'success');
 
             const metadata = {
                 name: nomeArquivo,
                 mimeType: 'application/zip',
+                parents: [folderId]
             };
 
             const formUpload = new FormData();
@@ -203,28 +254,36 @@ async function enviarParaGoogleDrive(blob, nomeArquivo) {
 
             const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
                 method: 'POST',
-                headers: new Headers({ 'Authorization': 'Bearer ' + response.access_token }),
+                headers: { 'Authorization': `Bearer ${accessToken}` },
                 body: formUpload,
             });
 
             if (uploadResponse.ok) {
-                showMessage(`Sucesso! Arquivo enviado para o seu Drive.`, 'success');
+                showMessage(`Sucesso! "${nomeArquivo}" enviado para a pasta ${pastaDataNome}.`, 'success');
                 form.reset();
+                // Limpar estilos de validação
+                formFields.forEach(f => f.classList.remove('field-valid', 'field-invalid'));
             } else {
                 const error = await uploadResponse.json();
                 throw new Error(error.error.message);
             }
         } catch (error) {
-            showMessage('Erro no upload: ' + error.message, 'error');
+            console.error('Erro completo:', error);
+            showMessage('Erro no processo: ' + error.message, 'error');
         }
     };
 
     tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
+// ================================================================
+// 5. FUNÇÕES AUXILIARES
+// ================================================================
+
 function validateField(field) {
     const value = field.value?.trim() || '';
     if (field.required && value === '' && field.type !== 'file') return false;
+    if (field.type === 'file' && field.required && field.files.length === 0) return false;
     return true; 
 }
 
@@ -232,3 +291,4 @@ function showMessage(text, type = 'success') {
     messageNode.textContent = text;
     messageNode.className = `message ${type}`;
 }
+
